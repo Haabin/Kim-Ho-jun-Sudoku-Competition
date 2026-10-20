@@ -18,7 +18,8 @@ const store = {
 };
 const played = () => store.get("played"); // 클리어 기록이 저장된 닉네임
 const rankSeen = () => store.get("rankSeen") === "1";
-const canReview = () => !!played() && rankSeen();
+const token = () => store.get("playToken"); // 클리어 시 발급되는 일회용 리뷰 토큰
+const canReview = () => !!played() && !!token() && rankSeen();
 
 function refreshReviewGate() {
   const ok = canReview();
@@ -26,7 +27,7 @@ function refreshReviewGate() {
   $("#reviewForm").hidden = !ok;
   $("#rvLock").hidden = ok;
   $("#rvNick").value = played();
-  if (!ok) say(!played() ? "리뷰는 게임을 클리어해 점수를 저장한 뒤 작성할 수 있어요. 먼저 게임을 플레이하세요!" : "순위 탭에서 내 순위를 확인하면 리뷰를 작성할 수 있어요.", "#rvLock");
+  if (!ok) say(!token() ? "리뷰는 게임을 클리어해 점수를 저장한 뒤 작성할 수 있어요. 먼저 게임을 플레이하세요!" : "순위 탭에서 내 순위를 확인하면 리뷰를 작성할 수 있어요.", "#rvLock");
 }
 
 function showTab(name) {
@@ -39,6 +40,9 @@ document.querySelectorAll("nav button").forEach((b) => b.onclick = () => showTab
 $("#startBtn").onclick = () => showTab("game");
 
 // ---- 게임 ----
+// 게임 탭을 보고 있고 광고 창이 닫혀 있을 때만 시간이 흐른다
+const gameVisible = () => $("#tab-game").classList.contains("active") && $("#adModal").hidden;
+
 function newGame() {
   if (G) clearInterval(G.tid);
   say("퍼즐 생성 중...");
@@ -47,7 +51,7 @@ function newGame() {
     const { puzzle, solution } = Sudoku.generate(diff);
     G = { diff, puzzle, solution, cur: puzzle.slice(), notes: puzzle.map(() => new Set()),
       sel: -1, mistakes: 0, hints: 0, bonus: 0, secs: 0, note: false, over: false };
-    G.tid = setInterval(() => { if (!G.over) { G.secs++; $("#timer").textContent = fmt(G.secs); } }, 1000);
+    G.tid = setInterval(() => { if (!G.over && gameVisible()) { G.secs++; $("#timer").textContent = fmt(G.secs); } }, 1000);
     say("");
     render();
   }, 20);
@@ -138,11 +142,13 @@ async function end(win) {
   if (!nick) return say(`🎉 ${score}점! 닉네임을 입력하지 않아 기록은 저장되지 않았어요.`);
   if (!db) return say(`🎉 ${score}점! (Supabase 미설정: 저장 안 됨)`);
   say(`🎉 클리어! ${score}점 (${fmt(G.secs)}) 저장 중...`);
+  const tk = crypto.randomUUID();
   const { error } = await db.from("scores").insert({ nickname: nick, difficulty: G.diff,
-    time_seconds: G.secs, mistakes: G.mistakes, hints: G.hints, score });
+    time_seconds: G.secs, mistakes: G.mistakes, hints: G.hints, score, play_token: tk });
   if (error) return say(`🎉 ${score}점! 저장 실패: ${error.message}`);
   say(`🎉 ${score}점! 순위에 기록되었습니다.`);
   store.set("played", nick);
+  store.set("playToken", tk);
   store.set("rankSeen", "0");
   $("#rankDiff").value = G.diff;
   setTimeout(() => showTab("rank"), 1200); // 게임 -> 순위 확인
@@ -200,7 +206,7 @@ async function loadRank() {
   const ul = $("#rankList");
   if (!db) return (ul.innerHTML = "<li>Supabase 설정이 필요합니다 (config.js)</li>");
   ul.innerHTML = "<li>불러오는 중...</li>";
-  const { data, error } = await db.from("scores").select("*").eq("difficulty", $("#rankDiff").value)
+  const { data, error } = await db.from("scores").select("nickname,time_seconds,mistakes,hints,score").eq("difficulty", $("#rankDiff").value)
     .order("score", { ascending: false }).order("time_seconds").limit(50);
   if (error) return (ul.innerHTML = `<li>${esc(error.message)}</li>`);
   if (played()) { // 순위를 본 뒤에 리뷰가 열린다
@@ -225,7 +231,7 @@ drawStars();
 async function loadReviews() {
   const ul = $("#rvList");
   if (!db) return (ul.innerHTML = "<li>Supabase 설정이 필요합니다 (config.js)</li>");
-  const { data, error } = await db.from("reviews").select("*").order("created_at", { ascending: false }).limit(100);
+  const { data, error } = await db.from("reviews").select("nickname,rating,comment,created_at").order("created_at", { ascending: false }).limit(100);
   if (error) return (ul.innerHTML = `<li>${esc(error.message)}</li>`);
   const avg = data.length ? (data.reduce((s, r) => s + r.rating, 0) / data.length).toFixed(1) : "-";
   $("#rvAvg").textContent = `평균 ★ ${avg} (${data.length}개)`;
@@ -234,8 +240,10 @@ async function loadReviews() {
 $("#reviewForm").onsubmit = async (e) => {
   e.preventDefault();
   if (!db) return say("Supabase 설정이 필요합니다.", "#rvMsg");
-  const { error } = await db.from("reviews").insert({ nickname: played(), rating, comment: $("#rvText").value.trim() });
-  if (error) return say("등록 실패: " + (error.code === "42501" ? "게임을 클리어한 닉네임만 리뷰를 쓸 수 있어요." : error.message), "#rvMsg");
+  if (!canReview()) return refreshReviewGate();
+  const { error } = await db.from("reviews").insert({ nickname: played(), rating, comment: $("#rvText").value.trim(), play_token: token() });
+  if (error) return say("등록 실패: " + (error.code === "42501" ? "게임을 클리어해야 리뷰를 쓸 수 있어요." : error.message), "#rvMsg");
+  store.set("playToken", ""); store.set("rankSeen", "0"); refreshReviewGate(); // 리뷰는 클리어 1회당 1번
   $("#rvText").value = ""; say("리뷰가 등록되었습니다. 감사합니다!", "#rvMsg"); loadReviews();
 };
 
