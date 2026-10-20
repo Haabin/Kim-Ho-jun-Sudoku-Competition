@@ -10,14 +10,58 @@
 <header>
   <h1>🏆 소비자학과 김호준 스도쿠 대회</h1>
   <nav>
-    <button data-tab="game" class="active">게임</button>
+    <button data-tab="intro" class="active">설명</button>
+    <button data-tab="game">게임</button>
     <button data-tab="rank">순위</button>
-    <button data-tab="review">리뷰</button>
+    <button data-tab="review" id="reviewTab">🔒 리뷰</button>
   </nav>
 </header>
 
 <main>
-<section id="tab-game" class="tab active">
+<section id="tab-intro" class="tab active">
+  <div class="card">
+    <h2>🎮 스도쿠란?</h2>
+    <p>9×9 판의 빈칸에 <b>1~9</b>를 채우는 숫자 퍼즐입니다. 아래 세 규칙을 모두 지키면 완성!</p>
+    <ul>
+      <li>각 <b>가로줄</b>에 1~9가 한 번씩</li>
+      <li>각 <b>세로줄</b>에 1~9가 한 번씩</li>
+      <li>굵은 선으로 나뉜 3×3 <b>박스</b>마다 1~9가 한 번씩</li>
+    </ul>
+    <p class="sub">모든 퍼즐의 정답은 단 하나뿐이라 추측 없이 논리로 풀 수 있어요.</p>
+  </div>
+  <div class="card">
+    <h2>🕹 조작법</h2>
+    <ul>
+      <li>칸을 누르고 아래 숫자 버튼(또는 키보드 1~9)으로 입력</li>
+      <li><b>메모</b>: 후보 숫자를 작게 적어두기 · <b>지우기</b>: 칸 비우기</li>
+      <li><b>힌트</b>: 정답 한 칸을 알려줘요 (최대 3회, 점수 감점)</li>
+      <li><b>실수 3회</b>면 게임 종료! 틀린 숫자는 빨갛게 표시돼요</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h2>🏆 순위(랭킹) 구조</h2>
+    <ul>
+      <li><b>난이도별 따로</b> 집계: 쉬움 / 보통 / 어려움 순위표가 각각 있어요</li>
+      <li>정렬: <b>점수 높은 순</b>, 점수가 같으면 <b>더 빨리 푼 순</b>. 상위 50명 표시</li>
+      <li>클리어하고 <b>닉네임을 입력</b>했을 때만 기록돼요</li>
+    </ul>
+    <p><b>점수 = 기본점 − 시간×2 − 실수×100 − 힌트×150</b> (최저 100점)</p>
+    <table>
+      <tr><th>난이도</th><th>기본점</th><th>빈칸</th></tr>
+      <tr><td>쉬움</td><td>1000</td><td>38</td></tr>
+      <tr><td>보통</td><td>2000</td><td>47</td></tr>
+      <tr><td>어려움</td><td>3000</td><td>54</td></tr>
+    </table>
+    <p class="sub">예) 보통, 5분(300초), 실수 1회, 힌트 0회 → 2000 − 600 − 100 = <b>1300점</b></p>
+  </div>
+  <div class="card">
+    <h2>🧭 진행 순서</h2>
+    <p><b>① 게임 클리어 → ② 순위 확인 → ③ 리뷰 작성</b><br>리뷰는 게임을 클리어하고 순위를 확인한 사람만 쓸 수 있어요.</p>
+  </div>
+  <button id="startBtn" class="primary wide">게임 시작하기</button>
+</section>
+
+<section id="tab-game" class="tab">
   <div class="bar">
     <input id="nick" maxlength="20" placeholder="닉네임">
     <select id="diff">
@@ -51,12 +95,15 @@
     </select>
     <button id="rankReload">새로고침</button>
   </div>
+  <p id="rankNote" class="msg"></p>
   <ol id="rankList" class="list"></ol>
+  <button id="goReview" class="primary" hidden>✍️ 리뷰 작성하러 가기</button>
 </section>
 
 <section id="tab-review" class="tab">
+  <p id="rvLock" class="msg" hidden></p>
   <form id="reviewForm">
-    <input id="rvNick" maxlength="20" placeholder="닉네임" required>
+    <input id="rvNick" maxlength="20" readonly required>
     <div id="stars" role="radiogroup" aria-label="별점"></div>
     <textarea id="rvText" maxlength="300" rows="3" placeholder="게임 리뷰를 남겨주세요 (300자)" required></textarea>
     <button class="primary">리뷰 등록</button>

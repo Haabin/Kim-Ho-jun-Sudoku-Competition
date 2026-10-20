@@ -24,7 +24,13 @@ create index if not exists reviews_created_idx on public.reviews (created_at des
 alter table public.scores enable row level security;
 alter table public.reviews enable row level security;
 
+drop policy if exists "scores read" on public.scores;
 create policy "scores read"   on public.scores  for select using (true);
+drop policy if exists "scores insert" on public.scores;
 create policy "scores insert" on public.scores  for insert with check (true);
+drop policy if exists "reviews read" on public.reviews;
 create policy "reviews read"   on public.reviews for select using (true);
-create policy "reviews insert" on public.reviews for insert with check (true);
+-- 리뷰는 같은 닉네임으로 저장된 점수(=게임 클리어 기록)가 있어야 작성 가능
+drop policy if exists "reviews insert" on public.reviews;
+create policy "reviews insert" on public.reviews for insert
+  with check (exists (select 1 from public.scores s where s.nickname = reviews.nickname));
