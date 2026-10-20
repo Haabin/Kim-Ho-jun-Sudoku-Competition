@@ -2,7 +2,7 @@ const $ = (s) => document.querySelector(s);
 const hasDb = window.SUPABASE_URL && !window.SUPABASE_URL.startsWith("YOUR_");
 const db = hasDb ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 const BASE = { easy: 1000, medium: 2000, hard: 3000 };
-const MAX_MISTAKES = 3, MAX_HINTS = 3;
+const MAX_MISTAKES = 3, MAX_HINTS = 3, MAX_AD_HINTS = 3, AD_SECONDS = 5;
 
 let G; // 게임 상태
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -33,7 +33,7 @@ function showTab(name) {
   document.querySelectorAll("nav button").forEach((x) => x.classList.toggle("active", x.dataset.tab === name));
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.id === "tab-" + name));
   if (name === "rank") loadRank();
-  if (name === "review") { refreshReviewGate(); if (canReview()) loadReviews(); }
+  if (name === "review") { refreshReviewGate(); loadReviews(); }
 }
 document.querySelectorAll("nav button").forEach((b) => b.onclick = () => showTab(b.dataset.tab));
 $("#startBtn").onclick = () => showTab("game");
@@ -46,7 +46,7 @@ function newGame() {
     const diff = $("#diff").value;
     const { puzzle, solution } = Sudoku.generate(diff);
     G = { diff, puzzle, solution, cur: puzzle.slice(), notes: puzzle.map(() => new Set()),
-      sel: -1, mistakes: 0, hints: 0, secs: 0, note: false, over: false };
+      sel: -1, mistakes: 0, hints: 0, bonus: 0, secs: 0, note: false, over: false };
     G.tid = setInterval(() => { if (!G.over) { G.secs++; $("#timer").textContent = fmt(G.secs); } }, 1000);
     say("");
     render();
@@ -76,7 +76,11 @@ function render() {
     else d.textContent = "";
   });
   $("#mistakes").textContent = G.mistakes;
-  $("#hints").textContent = G.hints;
+  const limit = MAX_HINTS + G.bonus;
+  $("#hints").textContent = G.hints + "/" + limit;
+  const needAd = G.hints >= limit;
+  $("#hintBtn").textContent = needAd ? (G.bonus >= MAX_AD_HINTS ? "힌트 소진" : "📺 광고 보고 힌트") : "💡 힌트";
+  $("#hintBtn").disabled = G.over || (needAd && G.bonus >= MAX_AD_HINTS);
   $("#timer").textContent = fmt(G.secs);
   $("#noteBtn").textContent = "✏️ 메모 " + (G.note ? "ON" : "OFF");
   const left = Array(10).fill(9);
@@ -110,7 +114,8 @@ function erase() {
   G.cur[G.sel] = 0; G.notes[G.sel].clear(); render();
 }
 function hint() {
-  if (!G || G.over || G.hints >= MAX_HINTS) return;
+  if (!G || G.over) return;
+  if (G.hints >= MAX_HINTS + G.bonus) return watchAd();
   let i = G.sel;
   if (i < 0 || G.puzzle[i] || G.cur[i] === G.solution[i]) {
     const empties = G.cur.map((v, k) => (v !== G.solution[k] ? k : -1)).filter((k) => k >= 0);
@@ -142,6 +147,28 @@ async function end(win) {
   $("#rankDiff").value = G.diff;
   setTimeout(() => showTab("rank"), 1200); // 게임 -> 순위 확인
 }
+
+// ---- 광고 보고 힌트 받기 (보상형 광고 자리: 실제 광고 SDK로 교체 가능) ----
+let adTimer;
+function watchAd() {
+  if (G.bonus >= MAX_AD_HINTS) return;
+  const m = $("#adModal"), close = $("#adClose");
+  let left = AD_SECONDS;
+  m.hidden = false; close.disabled = true;
+  const tick = () => {
+    $("#adCount").textContent = left > 0 ? left + "초 후 보상 지급" : "시청 완료!";
+    if (left-- <= 0) { clearInterval(adTimer); close.disabled = false; close.textContent = "힌트 받기"; }
+  };
+  close.textContent = "광고 시청 중...";
+  tick(); adTimer = setInterval(tick, 1000);
+}
+$("#adClose").onclick = () => {
+  $("#adModal").hidden = true;
+  G.bonus++;
+  say("🎁 광고 보상으로 힌트 1회가 추가되었어요!");
+  render();
+};
+$("#adSkip").onclick = () => { clearInterval(adTimer); $("#adModal").hidden = true; };
 
 // 입력 UI
 for (let n = 1; n <= 9; n++) {

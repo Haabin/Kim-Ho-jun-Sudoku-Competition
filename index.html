@@ -34,7 +34,7 @@
     <ul>
       <li>칸을 누르고 아래 숫자 버튼(또는 키보드 1~9)으로 입력</li>
       <li><b>메모</b>: 후보 숫자를 작게 적어두기 · <b>지우기</b>: 칸 비우기</li>
-      <li><b>힌트</b>: 정답 한 칸을 알려줘요 (최대 3회, 점수 감점)</li>
+      <li><b>힌트</b>: 정답 한 칸을 알려줘요 (기본 3회, 쓸 때마다 점수 감점). 다 쓰면 <b>광고를 보고 1회씩 추가</b>(게임당 최대 3번)</li>
       <li><b>실수 3회</b>면 게임 종료! 틀린 숫자는 빨갛게 표시돼요</li>
     </ul>
   </div>
@@ -74,7 +74,7 @@
   <div class="stats">
     <span>⏱ <b id="timer">00:00</b></span>
     <span>❌ 실수 <b id="mistakes">0</b>/3</span>
-    <span>💡 힌트 <b id="hints">0</b>/3</span>
+    <span>💡 힌트 <b id="hints">0/3</b></span>
   </div>
   <div id="board" aria-label="스도쿠 판"></div>
   <div id="pad"></div>
@@ -113,6 +113,16 @@
   <ul id="rvList" class="list"></ul>
 </section>
 </main>
+
+<div id="adModal" class="modal" hidden>
+  <div class="adbox">
+    <p class="sub">광고</p>
+    <div class="adimg">📺 광고 영역</div>
+    <p id="adCount" class="msg"></p>
+    <button id="adClose" class="primary" disabled>광고 시청 중...</button>
+    <button id="adSkip">닫기 (보상 없음)</button>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
