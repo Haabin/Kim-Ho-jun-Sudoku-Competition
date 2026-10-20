@@ -1,0 +1,1 @@
+{ "name": "kimhojun-sudoku", "private": true, "scripts": { "build": "node build.js" } }

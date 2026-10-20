@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>소비자학과 김호준 스도쿠 대회</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>🏆 소비자학과 김호준 스도쿠 대회</h1>
+  <nav>
+    <button data-tab="game" class="active">게임</button>
+    <button data-tab="rank">순위</button>
+    <button data-tab="review">리뷰</button>
+  </nav>
+</header>
+
+<main>
+<section id="tab-game" class="tab active">
+  <div class="bar">
+    <input id="nick" maxlength="20" placeholder="닉네임">
+    <select id="diff">
+      <option value="easy">쉬움</option>
+      <option value="medium" selected>보통</option>
+      <option value="hard">어려움</option>
+    </select>
+    <button id="newGame" class="primary">새 게임</button>
+  </div>
+  <div class="stats">
+    <span>⏱ <b id="timer">00:00</b></span>
+    <span>❌ 실수 <b id="mistakes">0</b>/3</span>
+    <span>💡 힌트 <b id="hints">0</b>/3</span>
+  </div>
+  <div id="board" aria-label="스도쿠 판"></div>
+  <div id="pad"></div>
+  <div class="bar">
+    <button id="noteBtn">✏️ 메모 OFF</button>
+    <button id="eraseBtn">지우기</button>
+    <button id="hintBtn">힌트</button>
+  </div>
+  <p id="msg" class="msg"></p>
+</section>
+
+<section id="tab-rank" class="tab">
+  <div class="bar">
+    <select id="rankDiff">
+      <option value="easy">쉬움</option>
+      <option value="medium" selected>보통</option>
+      <option value="hard">어려움</option>
+    </select>
+    <button id="rankReload">새로고침</button>
+  </div>
+  <ol id="rankList" class="list"></ol>
+</section>
+
+<section id="tab-review" class="tab">
+  <form id="reviewForm">
+    <input id="rvNick" maxlength="20" placeholder="닉네임" required>
+    <div id="stars" role="radiogroup" aria-label="별점"></div>
+    <textarea id="rvText" maxlength="300" rows="3" placeholder="게임 리뷰를 남겨주세요 (300자)" required></textarea>
+    <button class="primary">리뷰 등록</button>
+  </form>
+  <p id="rvMsg" class="msg"></p>
+  <div id="rvAvg"></div>
+  <ul id="rvList" class="list"></ul>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="sudoku.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
